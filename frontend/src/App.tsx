@@ -1,31 +1,34 @@
-import { useRef } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
-import type { Mesh } from 'three'
-
-function SpinningCube() {
-  const ref = useRef<Mesh>(null!)
-  useFrame((_, delta) => {
-    ref.current.rotation.y += delta
-  })
-  return (
-    <mesh ref={ref}>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="royalblue" />
-    </mesh>
-  )
-}
+import Viewport from './components/Viewport';
+import SliderPanel from './components/SliderPanel';
+import ComponentSelector from './components/ComponentSelector';
+import ScoringDashboard from './components/ScoringDashboard';
+import MassBudgetChart from './components/MassBudgetChart';
+import StabilityIndicator from './components/StabilityIndicator';
 
 export default function App() {
   return (
-    <div className="w-screen h-screen bg-gray-900">
-      <Canvas camera={{ position: [3, 3, 3] }}>
-        <ambientLight intensity={0.5} />
-        <directionalLight position={[5, 5, 5]} />
-        <SpinningCube />
-        <OrbitControls />
-        <gridHelper args={[10, 10]} />
-      </Canvas>
+    <div className="w-screen h-screen bg-gray-900 flex overflow-hidden">
+      {/* Left Panel: Sliders + Component Selection */}
+      <div className="w-80 flex-shrink-0 border-r border-gray-800 flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto">
+          <SliderPanel />
+          <ComponentSelector />
+        </div>
+      </div>
+
+      {/* Center: 3D Viewport */}
+      <div className="flex-1 min-w-0">
+        <Viewport />
+      </div>
+
+      {/* Right Panel: Scoring Dashboard */}
+      <div className="w-80 flex-shrink-0 border-l border-gray-800 flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto">
+          <ScoringDashboard />
+          <MassBudgetChart />
+          <StabilityIndicator />
+        </div>
+      </div>
     </div>
-  )
+  );
 }
