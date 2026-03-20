@@ -150,13 +150,27 @@ function SceneContent() {
       <WheelModel diameter_mm={wheel.diameter_mm} width_mm={wheel.width_mm} x_mm={0} y_mm={wheelY} />
       <WheelModel diameter_mm={wheel.diameter_mm} width_mm={wheel.width_mm} x_mm={0} y_mm={-wheelY} />
 
-      {/* Casters (simplified as small spheres) */}
-      {[1, -1].map((sign) => (
-        <mesh key={sign} position={[sign * (params.frameLength_mm / 2 - 20) * MM, 0.012, 0]}>
-          <sphereGeometry args={[0.012, 12, 12]} />
-          <meshStandardMaterial color="#808080" />
-        </mesh>
-      ))}
+      {/* Ball casters: housing + ball, at front and rear */}
+      {[1, -1].map((sign) => {
+        const casterX = sign * (params.frameLength_mm / 2 - 20) * MM;
+        const ballRadius = 0.012; // 12mm ball
+        const housingSize = 0.028; // 28mm housing block
+        const housingHeight = 0.018;
+        return (
+          <group key={sign} position={[casterX, 0, 0]}>
+            {/* Ball */}
+            <mesh position={[0, ballRadius, 0]}>
+              <sphereGeometry args={[ballRadius, 16, 16]} />
+              <meshStandardMaterial color="#aaaaaa" metalness={0.7} roughness={0.2} />
+            </mesh>
+            {/* Housing block */}
+            <mesh position={[0, ballRadius * 2 + housingHeight / 2, 0]}>
+              <boxGeometry args={[housingSize, housingHeight, housingSize]} />
+              <meshStandardMaterial color="#555555" metalness={0.4} roughness={0.5} />
+            </mesh>
+          </group>
+        );
+      })}
 
       {/* CG Marker */}
       <CGMarker />
