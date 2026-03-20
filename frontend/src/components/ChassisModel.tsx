@@ -1,97 +1,146 @@
 import { useMemo } from 'react';
-import { Edges } from '@react-three/drei';
+import * as THREE from 'three';
 import { useDesignStore } from '../store/useDesignStore';
 
 /** mm to Three.js meters */
 const MM = 0.001;
 
-/** Standoff diameter in mm */
-const STANDOFF_DIAMETER_MM = 8;
-/** Standoff inset from plate corners in mm */
-const STANDOFF_INSET_MM = 15;
+/** Corner radius as a fraction of the shorter frame dimension */
+const CORNER_RADIUS_FRACTION = 0.08;
+/** Wall thickness as a fraction of frame thickness (for the shell walls) */
+const WALL_THICKNESS_FRACTION = 0.6;
+/** Curve segments for rounded corners */
+const CORNER_SEGMENTS = 8;
 
 /**
- * Parametric chassis frame rendered as a dual-deck structure:
- * - Base plate at groundClearance height (drivetrain/battery mounting surface)
- * - Top plate at groundClearance + frameHeight (compute/sensor/payload mounting)
- * - Four corner standoffs connecting the decks
+ * Create a rounded rectangle THREE.Shape.
+ * Origin at center, lying in the XZ plane.
+ */
+function roundedRectShape(width: number, height: number, radius: number): THREE.Shape {
+  const r = Math.min(radius, width / 2, height / 2);
+  const hw = width / 2;
+  const hh = height / 2;
+
+  const shape = new THREE.Shape();
+  shape.moveTo(-hw + r, -hh);
+  shape.lineTo(hw - r, -hh);
+  shape.quadraticCurveTo(hw, -hh, hw, -hh + r);
+  shape.lineTo(hw, hh - r);
+  shape.quadraticCurveTo(hw, hh, hw - r, hh);
+  shape.lineTo(-hw + r, hh);
+  shape.quadraticCurveTo(-hw, hh, -hw, hh - r);
+  shape.lineTo(-hw, -hh + r);
+  shape.quadraticCurveTo(-hw, -hh, -hw + r, -hh);
+
+  return shape;
+}
+
+/**
+ * Parametric chassis rendered as a molded tray/shell:
+ * - Rounded base plate (floor)
+ * - Perimeter walls rising to frameHeight
+ * - Interior cavity visible for component placement
  *
- * This matches the most common indoor mobile robot chassis construction
- * (e.g. TurtleBot, ROSbot, warehouse bots).
+ * Looks like an injection-molded or CNC-machined robot chassis
+ * (Roomba, ROSbot, delivery robot shell aesthetic).
  */
 export default function ChassisModel() {
   const params = useDesignStore((s) => s.params);
 
-  const geometry = useMemo(() => {
+  const { trayGeometry, lipGeometry, trayPosition } = useMemo(() => {
     const l = params.frameLength_mm * MM;
     const w = params.frameWidth_mm * MM;
     const t = params.frameThickness_mm * MM;
+    const wallH = params.frameHeight_mm * MM;
+    const wallThickness = t * WALL_THICKNESS_FRACTION;
+    const cornerR = Math.min(l, w) * CORNER_RADIUS_FRACTION;
+
+    // Base floor: extruded rounded rectangle
+    const outerShape = roundedRectShape(l, w, cornerR);
+
+    const trayGeo = new THREE.ExtrudeGeometry(outerShape, {
+      depth: t,
+      bevelEnabled: false,
+      curveSegments: CORNER_SEGMENTS,
+    });
+    // Extrude goes along +Z by default. We'll rotate the mesh to make Y=up.
+
+    // Walls: outer shape minus inner shape, extruded to wallH
+    const innerShape = roundedRectShape(
+      l - 2 * wallThickness,
+      w - 2 * wallThickness,
+      Math.max(cornerR - wallThickness, 0.001),
+    );
+    const wallShape = roundedRectShape(l, w, cornerR);
+    wallShape.holes.push(innerShape);
+
+    const wallGeo = new THREE.ExtrudeGeometry(wallShape, {
+      depth: wallH - t, // walls extend from top of base plate to frameHeight
+      bevelEnabled: true,
+      bevelThickness: 0.001,
+      bevelSize: 0.001,
+      bevelSegments: 1,
+      curveSegments: CORNER_SEGMENTS,
+    });
+
     const gc = params.groundClearance_mm * MM;
-    const fh = params.frameHeight_mm * MM;
-
-    // Base plate: bottom face at groundClearance
-    const basePlateY = gc + t / 2;
-
-    // Top plate: top face at groundClearance + frameHeight
-    const topPlateY = gc + fh - t / 2;
-
-    // Standoff height: gap between the two plates
-    const standoffHeight = fh - 2 * params.frameThickness_mm * MM;
-    const standoffY = gc + t + standoffHeight / 2; // centered between plates
-    const standoffRadius = (STANDOFF_DIAMETER_MM / 2) * MM;
-
-    // Standoff corner positions (inset from plate edges)
-    const inset = STANDOFF_INSET_MM * MM;
-    const standoffPositions: [number, number, number][] = [
-      [l / 2 - inset, standoffY, w / 2 - inset],
-      [l / 2 - inset, standoffY, -(w / 2 - inset)],
-      [-(l / 2 - inset), standoffY, w / 2 - inset],
-      [-(l / 2 - inset), standoffY, -(w / 2 - inset)],
-    ];
 
     return {
-      plateArgs: [l, t, w] as [number, number, number],
-      basePlatePos: [0, basePlateY, 0] as [number, number, number],
-      topPlatePos: [0, topPlateY, 0] as [number, number, number],
-      standoffHeight: Math.max(standoffHeight, 0.001),
-      standoffRadius,
-      standoffPositions,
+      trayGeometry: trayGeo,
+      lipGeometry: wallGeo,
+      trayPosition: [0, gc, 0] as [number, number, number],
     };
   }, [params.frameLength_mm, params.frameWidth_mm, params.frameThickness_mm, params.groundClearance_mm, params.frameHeight_mm]);
 
-  const plateMaterial = (
-    <meshPhysicalMaterial
-      color="#4488cc"
-      transparent
-      opacity={0.45}
-      roughness={0.3}
-      depthWrite={false}
-    />
-  );
+  const wallOffset = params.frameThickness_mm * MM;
 
   return (
-    <group>
-      {/* Base plate */}
-      <mesh position={geometry.basePlatePos}>
-        <boxGeometry args={geometry.plateArgs} />
-        {plateMaterial}
-        <Edges color="#2266aa" />
+    <group position={trayPosition}>
+      {/* Base floor plate */}
+      <mesh
+        geometry={trayGeometry}
+        rotation={[-Math.PI / 2, 0, 0]}
+      >
+        <meshPhysicalMaterial
+          color="#3d7ab5"
+          transparent
+          opacity={0.55}
+          roughness={0.25}
+          metalness={0.1}
+          clearcoat={0.3}
+          depthWrite={false}
+        />
       </mesh>
 
-      {/* Top plate */}
-      <mesh position={geometry.topPlatePos}>
-        <boxGeometry args={geometry.plateArgs} />
-        {plateMaterial}
-        <Edges color="#2266aa" />
+      {/* Perimeter walls */}
+      <mesh
+        geometry={lipGeometry}
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, wallOffset, 0]}
+      >
+        <meshPhysicalMaterial
+          color="#4a90c9"
+          transparent
+          opacity={0.4}
+          roughness={0.2}
+          metalness={0.15}
+          clearcoat={0.4}
+          depthWrite={false}
+        />
       </mesh>
 
-      {/* Corner standoffs */}
-      {geometry.standoffPositions.map((pos, i) => (
-        <mesh key={i} position={pos}>
-          <cylinderGeometry args={[geometry.standoffRadius, geometry.standoffRadius, geometry.standoffHeight, 8]} />
-          <meshStandardMaterial color="#888888" metalness={0.6} roughness={0.3} />
-        </mesh>
-      ))}
+      {/* Top lip/rim edge highlight */}
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, params.frameHeight_mm * MM, 0]}
+      >
+        <ringGeometry args={[
+          Math.min(params.frameLength_mm, params.frameWidth_mm) * MM * 0.48,
+          Math.min(params.frameLength_mm, params.frameWidth_mm) * MM * 0.5,
+          32,
+        ]} />
+        <meshBasicMaterial color="#5aade0" transparent opacity={0} />
+      </mesh>
     </group>
   );
 }
