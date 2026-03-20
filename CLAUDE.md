@@ -531,3 +531,50 @@ Accuracy matters more than breadth. An ME will immediately distrust the tool if 
 - [@react-three/drei](https://github.com/pmndrs/drei) — helpers for R3F (OrbitControls, Grid, etc.)
 - [Recharts](https://recharts.org/) — React charting library for scoring dashboard
 - [Zustand](https://github.com/pmndrs/zustand) — lightweight state management
+
+---
+
+## Development
+
+### Quick Start
+```bash
+cd frontend
+npm install
+npm run dev    # starts dev server at http://localhost:5173
+npm run build  # production build to frontend/dist
+```
+
+### Deployment
+Vercel auto-deploys on every push to `main`. The `vercel.json` at repo root configures the build to run from `frontend/`.
+
+Live URL: https://chassisforge.vercel.app
+
+### Phase 1 Implementation Status
+- [x] Vite + React + TypeScript (strict) + Tailwind v4 scaffold
+- [x] Type system: ChassisParams, SimulationScores, all component interfaces
+- [x] Hardcoded component catalog: 22 real components (5 motors, 3 drivers, 3 batteries, 3 compute boards, 4 wheels, 4 sensors)
+- [x] Physics engine: CG, stability margin, tip angle, max speed, turning radius, gradeability, step clearance, power budget, runtime, interference check, doorway fit, payload capacity
+- [x] Zustand store with automatic score recomputation on every param/component change
+- [x] 3D viewport: parametric chassis frame, color-coded component blocks, wheels, CG marker
+- [x] Slider panel: frame dimensions, material, component positions, payload settings
+- [x] Component selector: dropdowns for each category, checkboxes for sensors
+- [x] Scoring dashboard: score cards with status colors, doorway fit badges, interference warnings
+- [x] Mass budget pie chart (Recharts)
+- [x] Stability indicator: top-down SVG with support polygon and CG projection
+- [x] 3-column layout: controls | viewport | scores
+- [x] Deployed to Vercel
+
+### Coordinate System
+- Physics: origin at center of frame footprint at ground level. X = forward, Y = left, Z = up. All mm.
+- Three.js scene: Y = up. Mapping: physics X → scene X, physics Y → scene -Z, physics Z → scene Y. Convert mm to meters (×0.001).
+
+### Component Color Scheme
+| Type | Color | Hex |
+|------|-------|-----|
+| Motor | Orange | #ff8c00 |
+| Battery | Green | #22c55e |
+| Compute | Purple | #8b5cf6 |
+| Sensor | Cyan | #06b6d4 |
+| Motor Driver | Yellow | #eab308 |
+| Frame | Blue (translucent) | #4488cc |
+| CG marker | Red | #ef4444 |
