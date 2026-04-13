@@ -6,6 +6,7 @@ import MassBudgetChart from './components/MassBudgetChart';
 import StabilityIndicator from './components/StabilityIndicator';
 import DeployControls from './components/DeployControls';
 import BOMPanel from './components/BOMPanel';
+import CAEDashboard from './components/CAEDashboard';
 
 export default function App() {
   return (
@@ -24,10 +25,13 @@ export default function App() {
         <Viewport />
       </div>
 
-      {/* Right Panel: BOM + Scoring Dashboard */}
-      <div className="w-80 flex-shrink-0 border-l border-gray-800 flex flex-col overflow-hidden">
+      {/* Right Panel: BOM + CAE + Scoring */}
+      <div className="w-96 flex-shrink-0 border-l border-gray-800 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto">
           <BOMPanel />
+          <div className="border-t border-gray-800">
+            <CAEDashboard />
+          </div>
           <div className="border-t border-gray-800">
             <ScoringDashboard />
           </div>
