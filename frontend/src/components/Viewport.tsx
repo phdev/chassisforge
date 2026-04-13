@@ -1,21 +1,11 @@
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid, Line } from '@react-three/drei';
 import { useDesignStore } from '../store/useDesignStore';
-import ChassisModel from './ChassisModel';
-import ComponentBlock from './ComponentBlock';
-import WheelModel from './WheelModel';
+import DesignDModel from './DesignDModel';
 
 const MM = 0.001;
 
-/** Color scheme per component type */
-const COLORS = {
-  motor: '#ff8c00',
-  battery: '#22c55e',
-  compute: '#8b5cf6',
-  sensor: '#06b6d4',
-  motorDriver: '#eab308',
-  cg: '#ef4444',
-} as const;
+const CG_COLOR = '#ef4444';
 
 function CGMarker() {
   const cg = useDesignStore((s) => s.scores.cgPosition);
@@ -27,21 +17,18 @@ function CGMarker() {
 
   return (
     <group>
-      {/* CG sphere */}
       <mesh position={pos}>
         <sphereGeometry args={[0.008, 16, 16]} />
-        <meshStandardMaterial color={COLORS.cg} />
+        <meshStandardMaterial color={CG_COLOR} />
       </mesh>
-      {/* Dashed line to ground */}
       <Line
         points={[pos, groundPos]}
-        color={COLORS.cg}
+        color={CG_COLOR}
         lineWidth={1}
         dashed
         dashSize={0.01}
         gapSize={0.005}
       />
-      {/* Ground projection dot */}
       <mesh position={groundPos} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[0.006, 16]} />
         <meshBasicMaterial color={dotColor} />
@@ -51,24 +38,6 @@ function CGMarker() {
 }
 
 function SceneContent() {
-  const params = useDesignStore((s) => s.params);
-  const components = useDesignStore((s) => s.components);
-  const { wheel, motor, motorDriver } = components;
-
-  // Drive wheels: at sides of frame
-  const wheelY = params.frameWidth_mm / 2 + wheel.width_mm / 2;
-
-  // Motor positions (shown as blocks at frame edge)
-  const motorY = params.frameWidth_mm / 2 - params.motorMountInset_mm;
-  const motorZ = params.groundClearance_mm + wheel.diameter_mm / 2 - motor.dimensions_mm.height / 2;
-
-  // Motor driver position
-  const driverPos = {
-    x: -params.frameLength_mm / 4,
-    y: 0,
-    z: params.groundClearance_mm + params.frameHeight_mm,
-  };
-
   return (
     <>
       {/* Lighting */}
@@ -90,98 +59,19 @@ function SceneContent() {
         infiniteGrid
       />
 
-      {/* Chassis frame */}
-      <ChassisModel />
-
-      {/* Battery */}
-      <ComponentBlock
-        name="Battery"
-        position={params.batteryPosition}
-        dimensions={components.battery.dimensions_mm}
-        color={COLORS.battery}
-      />
-
-      {/* Compute */}
-      <ComponentBlock
-        name={components.compute.name}
-        position={params.computePosition}
-        dimensions={components.compute.dimensions_mm}
-        color={COLORS.compute}
-      />
-
-      {/* Motors (×2) */}
-      <ComponentBlock
-        name="Motor L"
-        position={{ x: 0, y: motorY, z: motorZ }}
-        dimensions={motor.dimensions_mm}
-        color={COLORS.motor}
-      />
-      <ComponentBlock
-        name="Motor R"
-        position={{ x: 0, y: -motorY, z: motorZ }}
-        dimensions={motor.dimensions_mm}
-        color={COLORS.motor}
-      />
-
-      {/* Motor Driver */}
-      <ComponentBlock
-        name={motorDriver.name}
-        position={driverPos}
-        dimensions={motorDriver.dimensions_mm}
-        color={COLORS.motorDriver}
-      />
-
-      {/* Sensors */}
-      {params.sensorMounts.map((mount) => {
-        const sensor = components.sensors.find((s) => s.id === mount.sensorId);
-        if (!sensor) return null;
-        return (
-          <ComponentBlock
-            key={mount.sensorId}
-            name={sensor.name}
-            position={mount.position}
-            dimensions={sensor.dimensions_mm}
-            color={COLORS.sensor}
-          />
-        );
-      })}
-
-      {/* Drive wheels */}
-      <WheelModel diameter_mm={wheel.diameter_mm} width_mm={wheel.width_mm} x_mm={0} y_mm={wheelY} />
-      <WheelModel diameter_mm={wheel.diameter_mm} width_mm={wheel.width_mm} x_mm={0} y_mm={-wheelY} />
-
-      {/* Ball casters: housing + ball, at front and rear */}
-      {[1, -1].map((sign) => {
-        const casterX = sign * (params.frameLength_mm / 2 - 20) * MM;
-        const ballRadius = 0.012; // 12mm ball
-        const housingSize = 0.028; // 28mm housing block
-        const housingHeight = 0.018;
-        return (
-          <group key={sign} position={[casterX, 0, 0]}>
-            {/* Ball */}
-            <mesh position={[0, ballRadius, 0]}>
-              <sphereGeometry args={[ballRadius, 16, 16]} />
-              <meshStandardMaterial color="#aaaaaa" metalness={0.7} roughness={0.2} />
-            </mesh>
-            {/* Housing block */}
-            <mesh position={[0, ballRadius * 2 + housingHeight / 2, 0]}>
-              <boxGeometry args={[housingSize, housingHeight, housingSize]} />
-              <meshStandardMaterial color="#555555" metalness={0.4} roughness={0.5} />
-            </mesh>
-          </group>
-        );
-      })}
+      {/* Design D popup box model */}
+      <DesignDModel />
 
       {/* CG Marker */}
       <CGMarker />
 
-      {/* Camera controls */}
+      {/* Camera controls — centered on Design D box height */}
       <OrbitControls
-        minDistance={0.2}
+        minDistance={0.15}
         maxDistance={3.0}
         maxPolarAngle={Math.PI / 2 - 0.05}
         enableDamping
-        target={[0, 0.05, 0]}
+        target={[0, 0.065, 0]}
       />
     </>
   );
@@ -190,7 +80,7 @@ function SceneContent() {
 export default function Viewport() {
   return (
     <Canvas
-      camera={{ position: [0.4, 0.3, 0.4], near: 0.01, far: 100 }}
+      camera={{ position: [0.3, 0.25, 0.3], near: 0.01, far: 100 }}
       className="bg-gray-950"
     >
       <SceneContent />

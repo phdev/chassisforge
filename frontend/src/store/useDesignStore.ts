@@ -5,11 +5,18 @@ import { MOTORS, BATTERIES, COMPUTE_BOARDS, WHEELS, SENSORS, MOTOR_DRIVERS } fro
 import { DEFAULT_CHASSIS_PARAMS, DEFAULT_SELECTED_COMPONENTS } from '../data/defaults';
 import { computeAllScores } from '../engine/physics';
 
+export type DeployState = 'retracted' | 'deployed';
+
 interface DesignStore {
   // State
   params: ChassisParams;
   components: SelectedComponents;
   scores: SimulationScores;
+
+  // Design D deployment state
+  deployState: DeployState;
+  /** 0 = fully retracted, 1 = fully deployed (risen + tilted) */
+  deployTarget: number;
 
   // Actions — chassis params
   setParam: <K extends keyof ChassisParams>(key: K, value: ChassisParams[K]) => void;
@@ -23,6 +30,9 @@ interface DesignStore {
   setMotorDriver: (id: string) => void;
   addSensor: (id: string) => void;
   removeSensor: (id: string) => void;
+
+  // Actions — deployment
+  setDeployState: (state: DeployState) => void;
 
   // Reset
   reset: () => void;
@@ -39,6 +49,8 @@ export const useDesignStore = create<DesignStore>()((set) => ({
   params: DEFAULT_CHASSIS_PARAMS,
   components: DEFAULT_SELECTED_COMPONENTS,
   scores: initialScores,
+  deployState: 'retracted',
+  deployTarget: 0,
 
   setParam: (key, value) =>
     set((state) => {
@@ -155,10 +167,18 @@ export const useDesignStore = create<DesignStore>()((set) => ({
       };
     }),
 
+  setDeployState: (state) =>
+    set({
+      deployState: state,
+      deployTarget: state === 'deployed' ? 1 : 0,
+    }),
+
   reset: () =>
     set({
       params: DEFAULT_CHASSIS_PARAMS,
       components: DEFAULT_SELECTED_COMPONENTS,
       scores: initialScores,
+      deployState: 'retracted',
+      deployTarget: 0,
     }),
 }));

@@ -3,62 +3,67 @@ import type { SelectedComponents } from '../types/components';
 import { MOTORS, BATTERIES, COMPUTE_BOARDS, WHEELS, SENSORS, MOTOR_DRIVERS } from './components';
 
 /**
- * Default chassis parameters for a differential drive indoor mobile base.
- * Positions are chosen to avoid component interference at startup.
+ * Default chassis parameters for Design D — 5"×5"×5" popup box.
+ *
+ * Design D is a stationary companion device with a deployable head containing
+ * a Kodak Luma 350 projector, Pi Camera, and VL53L5CX ToF sensor.
+ * The base houses a Raspberry Pi 5, pan servo, linear actuator, and electronics.
  *
  * Coordinate system: origin at center of frame footprint at ground level.
  * X = forward, Y = left, Z = up.
  * Component positions are center-bottom of the component bounding box.
+ *
+ * Physical dimensions: 127mm × 127mm × 127mm (retracted), 178mm tall (deployed).
  */
 export const DEFAULT_CHASSIS_PARAMS: ChassisParams = {
-  // Frame: a medium-sized indoor base
-  frameLength_mm: 300,
-  frameWidth_mm: 250,
-  frameHeight_mm: 80,
-  groundClearance_mm: 40,
+  // Frame: Design D box dimensions (5" = 127mm)
+  frameLength_mm: 127,
+  frameWidth_mm: 127,
+  frameHeight_mm: 127,
+  groundClearance_mm: 5,
   frameThickness_mm: 5,
   frameMaterial: 'pla',
 
-  // Drivetrain
+  // Drivetrain: stationary device, but keep differential as the type
   drivetrainType: 'differential',
   motorMountInset_mm: 10,
 
-  // Battery: centered, sitting on the frame floor
-  // Frame floor Z = groundClearance_mm = 40mm
-  batteryPosition: { x: 0, y: 0, z: 40 },
+  // Battery position (12V supply is external, but we still need a battery for scoring)
+  batteryPosition: { x: 0, y: 0, z: 5 },
 
-  // Compute: offset forward, on top of battery area
-  // Battery height = 24mm, so compute at z = 40 + 24 = 64
-  computePosition: { x: 60, y: 0, z: 64 },
+  // Compute: Pi 5 in base section
+  computePosition: { x: 15, y: 10, z: 10 },
 
-  // Sensors: RealSense at front, RPLiDAR on top
+  // Sensors: Pi Camera and VL53L5CX ToF in head
   sensorMounts: [
     {
-      sensorId: 'realsense_d435',
-      position: { x: 140, y: 0, z: 80 },
+      sensorId: 'pi_camera_3_wide',
+      position: { x: -55, y: -15, z: 100 },
       rotation: { pitch_deg: 0, yaw_deg: 0 },
     },
     {
-      sensorId: 'rplidar_a1',
-      position: { x: 0, y: 0, z: 120 },
+      sensorId: 'vl53l5cx_tof',
+      position: { x: -55, y: 15, z: 100 },
       rotation: { pitch_deg: 0, yaw_deg: 0 },
     },
   ],
 
   // Payload
-  payloadMountHeight_mm: 140,
-  maxPayload_kg: 10,
+  payloadMountHeight_mm: 130,
+  maxPayload_kg: 2,
 };
 
 /**
- * Default selected components. Uses the first reasonable option from each category.
+ * Default selected components for Design D.
+ * Uses small motor/wheel/battery for scoring compatibility even though
+ * Design D is a stationary device. The BOM panel shows the actual parts list.
  * Non-null assertions are safe here because the catalog is hardcoded and non-empty.
  */
 export const DEFAULT_SELECTED_COMPONENTS: SelectedComponents = {
-  motor: MOTORS.find(m => m.id === 'pololu_37d_150rpm')!,
+  motor: MOTORS.find(m => m.id === 'n20_micro_100rpm')!,
   battery: BATTERIES.find(b => b.id === 'lipo_3s_2200')!,
   compute: COMPUTE_BOARDS.find(c => c.id === 'rpi5')!,
-  wheel: WHEELS.find(w => w.id === 'pololu_90mm')!,
-  sensors: SENSORS.filter(s => s.id === 'realsense_d435' || s.id === 'rplidar_a1'),
-  motorDriver: MOTOR_DRIVERS.find(d => d.id === 'cytron_mdd10a')!,
+  wheel: WHEELS.find(w => w.id === 'pololu_60mm')!,
+  sensors: SENSORS.filter(s => s.id === 'pi_camera_3_wide' || s.id === 'vl53l5cx_tof'),
+  motorDriver: MOTOR_DRIVERS.find(d => d.id === 'tb6612fng')!,
 };

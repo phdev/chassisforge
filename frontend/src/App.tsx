@@ -4,13 +4,16 @@ import ComponentSelector from './components/ComponentSelector';
 import ScoringDashboard from './components/ScoringDashboard';
 import MassBudgetChart from './components/MassBudgetChart';
 import StabilityIndicator from './components/StabilityIndicator';
+import DeployControls from './components/DeployControls';
+import BOMPanel from './components/BOMPanel';
 
 export default function App() {
   return (
     <div className="w-screen h-screen bg-gray-900 flex overflow-hidden">
-      {/* Left Panel: Sliders + Component Selection */}
+      {/* Left Panel: Deploy Controls + Sliders + Component Selection */}
       <div className="w-80 flex-shrink-0 border-r border-gray-800 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto">
+          <DeployControls />
           <SliderPanel />
           <ComponentSelector />
         </div>
@@ -21,10 +24,13 @@ export default function App() {
         <Viewport />
       </div>
 
-      {/* Right Panel: Scoring Dashboard */}
+      {/* Right Panel: BOM + Scoring Dashboard */}
       <div className="w-80 flex-shrink-0 border-l border-gray-800 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto">
-          <ScoringDashboard />
+          <BOMPanel />
+          <div className="border-t border-gray-800">
+            <ScoringDashboard />
+          </div>
           <MassBudgetChart />
           <StabilityIndicator />
         </div>
