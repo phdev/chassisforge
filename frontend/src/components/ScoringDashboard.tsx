@@ -24,7 +24,7 @@ function ScoreCard({ label, value, unit, status }: {
 function Badge({ pass, label }: { pass: boolean; label: string }) {
   return (
     <span className={`text-[10px] px-1.5 py-0.5 rounded ${pass ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
-      {pass ? '✓' : '✗'} {label}
+      {pass ? '\u2713' : '\u2717'} {label}
     </span>
   );
 }
@@ -32,39 +32,42 @@ function Badge({ pass, label }: { pass: boolean; label: string }) {
 export default function ScoringDashboard() {
   const scores = useDesignStore((s) => s.scores);
 
-  const stabilityStatus = scores.stabilityMargin_pct > 50 ? 'good' :
-    scores.stabilityMargin_pct > 15 ? 'warn' : 'bad';
+  const tippingStatus = scores.tippingMargin_pct > 50 ? 'good' as const :
+    scores.tippingMargin_pct > 15 ? 'warn' as const : 'bad' as const;
 
-  const runtimeStatus = scores.estimatedRuntime_hrs > 2 ? 'good' :
-    scores.estimatedRuntime_hrs > 1 ? 'warn' : 'bad';
+  const thermalStatus = scores.headSteadyStateTemp_c < 55 ? 'good' as const :
+    scores.headSteadyStateTemp_c < 70 ? 'warn' as const : 'bad' as const;
+
+  const bucklingStatus = scores.bucklingMargin_pct > 80 ? 'good' as const :
+    scores.bucklingMargin_pct > 50 ? 'warn' as const : 'bad' as const;
+
+  const actuatorStatus = scores.actuatorSideLoadMargin_pct > 30 ? 'good' as const :
+    scores.actuatorSideLoadMargin_pct > 10 ? 'warn' as const : 'bad' as const;
 
   return (
-    <div className="p-3 overflow-y-auto h-full">
-      <h2 className="text-sm font-bold text-white mb-3">Scores</h2>
+    <div className="p-3 overflow-y-auto">
+      <h2 className="text-sm font-bold text-white mb-3">Device Scores</h2>
 
       <div className="grid grid-cols-2 gap-1.5 mb-3">
-        <ScoreCard label="Stability" value={scores.stabilityMargin_pct} unit="%" status={stabilityStatus} />
-        <ScoreCard label="Tip Angle" value={scores.tipAngle_deg} unit="°" status={scores.tipAngle_deg > 30 ? 'good' : 'warn'} />
-        <ScoreCard label="Max Speed" value={scores.maxSpeed_mps} unit="m/s" />
-        <ScoreCard label="Turn Radius" value={scores.turningRadius_mm === 0 ? 'Pivot' : scores.turningRadius_mm.toFixed(0)} unit={scores.turningRadius_mm === 0 ? '' : 'mm'} />
-        <ScoreCard label="Runtime" value={scores.estimatedRuntime_hrs} unit="hrs" status={runtimeStatus} />
-        <ScoreCard label="Power Draw" value={scores.totalPowerDraw_w} unit="W" />
         <ScoreCard label="Total Mass" value={scores.totalMass_kg} unit="kg" />
-        <ScoreCard label="Payload Cap." value={scores.payloadCapacity_kg} unit="kg" />
-        <ScoreCard label="Gradeability" value={scores.maxGradeability_deg} unit="°" />
-        <ScoreCard label="Step Clear." value={scores.stepClearance_mm} unit="mm" />
-      </div>
-
-      {/* Doorway Fit */}
-      <h3 className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">Doorway Fit</h3>
-      <div className="flex gap-2 mb-3">
-        <Badge pass={scores.doorwayFit.standard_762mm} label='30" (762mm)' />
-        <Badge pass={scores.doorwayFit.wide_914mm} label='36" (914mm)' />
+        <ScoreCard label="Power Draw" value={scores.totalPowerDraw_w} unit="W" />
+        <ScoreCard label="Tip Stability" value={scores.tippingMargin_pct} unit="%" status={tippingStatus} />
+        <ScoreCard label="Min Tip Angle" value={scores.minTipAngle_deg} unit="°" status={scores.minTipAngle_deg > 30 ? 'good' : 'warn'} />
+        <ScoreCard label="Head Temp" value={scores.headSteadyStateTemp_c} unit="°C" status={thermalStatus} />
+        <ScoreCard label="Base Temp" value={scores.baseSteadyStateTemp_c} unit="°C"
+          status={scores.baseSteadyStateTemp_c < 45 ? 'good' : 'warn'} />
+        <ScoreCard label="Actuator Margin" value={scores.actuatorSideLoadMargin_pct} unit="%" status={actuatorStatus} />
+        <ScoreCard label="Buckling Margin" value={scores.bucklingMargin_pct} unit="%" status={bucklingStatus} />
+        <ScoreCard label="Slot Stress" value={scores.slotCornerStress_mpa} unit="MPa" />
+        <ScoreCard label="Nat. Frequency" value={scores.naturalFrequency_hz} unit="Hz" />
+        <ScoreCard label="Cable Life" value={`${(scores.cableLifeCycles / 1000).toFixed(0)}k`} unit="cycles"
+          status={scores.cableLifeCycles > 20000 ? 'good' : scores.cableLifeCycles > 5000 ? 'warn' : 'bad'} />
+        <ScoreCard label="Electronics" value={scores.electronicsPowerDraw_w} unit="W" />
       </div>
 
       {/* Component Fit */}
       <div className="mb-3">
-        <Badge pass={scores.allComponentsFit} label="All components fit" />
+        <Badge pass={scores.allComponentsFit} label="All components fit in enclosure" />
       </div>
 
       {/* Interference Warnings */}
@@ -73,7 +76,7 @@ export default function ScoringDashboard() {
           <h3 className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-1">Warnings</h3>
           <ul className="text-[10px] text-red-300 space-y-0.5">
             {scores.interferenceWarnings.map((w, i) => (
-              <li key={i} className="bg-red-900/20 rounded px-1.5 py-0.5">⚠ {w}</li>
+              <li key={i} className="bg-red-900/20 rounded px-1.5 py-0.5">{w}</li>
             ))}
           </ul>
         </div>

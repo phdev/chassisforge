@@ -11,82 +11,11 @@ export interface AABB {
   max: Vec3;
 }
 
-export type FrameMaterial = 'pla' | 'petg' | 'aluminum_6061' | 'steel' | 'carbon_fiber';
-
-export type DrivetrainType = 'differential' | 'ackermann' | 'omni_4' | 'mecanum_4';
-
-export interface SensorMount {
-  sensorId: string;
-  position: Vec3; // mm, relative to chassis origin
-  rotation: { pitch_deg: number; yaw_deg: number };
-}
-
 /**
- * Parametric chassis configuration.
- * Coordinate system: origin at geometric center of frame footprint at ground level.
- * X = forward, Y = left, Z = up. All dimensions in mm.
+ * Practical enclosure materials for a tabletop companion device.
+ * Ordered from cheapest/easiest to most premium.
  */
-export interface ChassisParams {
-  // Frame dimensions
-  frameLength_mm: number;       // 150-800, step 5
-  frameWidth_mm: number;        // 100-600, step 5
-  frameHeight_mm: number;       // 30-200, step 5
-  groundClearance_mm: number;   // 10-150, step 5
-  frameThickness_mm: number;    // 2-10, step 0.5
-  frameMaterial: FrameMaterial;
-
-  // Drivetrain
-  drivetrainType: DrivetrainType;
-  motorMountInset_mm: number;   // how far inboard the motors sit from frame edge
-
-  // Component placements (mm, relative to chassis origin)
-  batteryPosition: Vec3;
-  computePosition: Vec3;
-  sensorMounts: SensorMount[];
-
-  // Payload
-  payloadMountHeight_mm: number;
-  maxPayload_kg: number;
-}
-
-/** Doorway fit check results. */
-export interface DoorwayFit {
-  standard_762mm: boolean;
-  wide_914mm: boolean;
-}
-
-/**
- * All simulation scores computed from ChassisParams + selected components.
- * Updated on every parameter change — must compute in <16ms.
- */
-export interface SimulationScores {
-  // Static stability
-  cgPosition: Vec3;                // mm
-  stabilityMargin_pct: number;     // 0-100
-  tipAngle_deg: number;            // degrees
-
-  // Mobility
-  turningRadius_mm: number;        // 0 for diff drive pivot turn
-  maxSpeed_mps: number;            // m/s
-  maxGradeability_deg: number;     // degrees
-  stepClearance_mm: number;        // mm
-
-  // Power
-  estimatedRuntime_hrs: number;
-  totalPowerDraw_w: number;
-  motorPowerDraw_w: number;
-  electronicsPowerDraw_w: number;
-
-  // Mass
-  totalMass_kg: number;
-  massBudget: Record<string, number>; // subsystem name -> kg
-  payloadCapacity_kg: number;
-
-  // Fit checks
-  allComponentsFit: boolean;
-  interferenceWarnings: string[];
-  doorwayFit: DoorwayFit;
-}
+export type FrameMaterial = 'pla' | 'petg' | 'abs' | 'plywood' | 'acrylic' | 'aluminum';
 
 /**
  * Material densities in kg/mm³.
@@ -95,14 +24,116 @@ export interface SimulationScores {
 export const MATERIAL_DENSITY_KG_PER_MM3: Record<FrameMaterial, number> = {
   pla: 1.24e-6,
   petg: 1.27e-6,
-  aluminum_6061: 2.70e-6,
-  steel: 7.85e-6,
-  carbon_fiber: 1.55e-6,
+  abs: 1.04e-6,
+  plywood: 0.55e-6,
+  acrylic: 1.18e-6,
+  aluminum: 2.70e-6,
 };
+
+/** Material yield strength in MPa (conservative, across layer lines for prints). */
+export const MATERIAL_YIELD_MPA: Record<FrameMaterial, number> = {
+  pla: 30,
+  petg: 40,
+  abs: 35,
+  plywood: 25,
+  acrylic: 55,
+  aluminum: 240,
+};
+
+/** Material thermal conductivity in W/(m·K). */
+export const MATERIAL_THERMAL_CONDUCTIVITY: Record<FrameMaterial, number> = {
+  pla: 0.13,
+  petg: 0.15,
+  abs: 0.17,
+  plywood: 0.13,
+  acrylic: 0.19,
+  aluminum: 167,
+};
+
+/** Positioned BOM component key. Only components with physical dimensions. */
+export type ComponentKey =
+  | 'pi5'
+  | 'luma350'
+  | 'piCamera'
+  | 'xvf3800'
+  | 'actuator'
+  | 'panServo'
+  | 'tiltServo'
+  | 'pca9685'
+  | 'tofSensor'
+  | 'buckConverter'
+  | 'bec'
+  | 'ttlBoard';
+
+export interface SensorMount {
+  sensorId: string;
+  position: Vec3;
+  rotation: { pitch_deg: number; yaw_deg: number };
+}
+
+/**
+ * Comni Box chassis parameters.
+ *
+ * Coordinate system: origin at center of base footprint at table level.
+ * X = forward (lens/projection side), Y = left, Z = up. All mm.
+ */
+export interface ChassisParams {
+  // Enclosure dimensions
+  boxWidth_mm: number;         // 100-180, step 1
+  boxDepth_mm: number;         // 100-180, step 1
+  baseHeight_mm: number;       // 50-100, step 1
+  headHeight_mm: number;       // 30-80, step 1
+  wallThickness_mm: number;    // 1.5-6, step 0.5
+  frameMaterial: FrameMaterial;
+
+  // Structural / CAE
+  basePlateWeight_kg: number;  // 0-2, step 0.05 (weighted steel/aluminum plate)
+  filletRadius_mm: number;     // 1-10, step 0.5 (slot corner fillets)
+  slotWidth_mm: number;        // 40-100, step 1 (neck slot opening)
+  slotDepth_mm: number;        // 40-100, step 1
+  riseMax_mm: number;          // 20-80, step 1 (actuator stroke)
+
+  // Component positions (center-bottom, physics coords)
+  componentPositions: Record<ComponentKey, Vec3>;
+}
+
+/**
+ * Simulation scores for Comni Box (stationary tabletop device).
+ * Updated on every parameter change — must compute in <16ms.
+ */
+export interface SimulationScores {
+  // CG
+  cgPosition: Vec3;
+
+  // Base stability (tipping analysis)
+  tippingMargin_pct: number;
+  minTipAngle_deg: number;
+
+  // Mass
+  totalMass_kg: number;
+  massBudget: Record<string, number>;
+
+  // Power (electronics only — no drive motors)
+  totalPowerDraw_w: number;
+  electronicsPowerDraw_w: number;
+
+  // Component fit
+  allComponentsFit: boolean;
+  interferenceWarnings: string[];
+
+  // CAE results (reactive to params)
+  actuatorSideLoadMargin_pct: number;
+  bucklingMargin_pct: number;
+  slotCornerStress_mpa: number;
+  headSteadyStateTemp_c: number;
+  baseSteadyStateTemp_c: number;
+  naturalFrequency_hz: number;
+  cableLifeCycles: number;
+}
 
 /** Slider parameter definition for UI generation. */
 export interface SliderDef {
-  key: keyof ChassisParams;
+  key: string;
   label: string;
   min: number;
   max: number;

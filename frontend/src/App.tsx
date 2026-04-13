@@ -1,6 +1,5 @@
 import Viewport from './components/Viewport';
 import SliderPanel from './components/SliderPanel';
-import ComponentSelector from './components/ComponentSelector';
 import ScoringDashboard from './components/ScoringDashboard';
 import MassBudgetChart from './components/MassBudgetChart';
 import StabilityIndicator from './components/StabilityIndicator';
@@ -11,12 +10,11 @@ import CAEDashboard from './components/CAEDashboard';
 export default function App() {
   return (
     <div className="w-screen h-screen bg-gray-900 flex overflow-hidden">
-      {/* Left Panel: Deploy Controls + Sliders + Component Selection */}
+      {/* Left Panel: Deploy Controls + Sliders */}
       <div className="w-80 flex-shrink-0 border-r border-gray-800 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto">
           <DeployControls />
           <SliderPanel />
-          <ComponentSelector />
         </div>
       </div>
 
@@ -25,18 +23,22 @@ export default function App() {
         <Viewport />
       </div>
 
-      {/* Right Panel: BOM + CAE + Scoring */}
+      {/* Right Panel: BOM + Scores + CAE */}
       <div className="w-96 flex-shrink-0 border-l border-gray-800 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto">
           <BOMPanel />
           <div className="border-t border-gray-800">
-            <CAEDashboard />
-          </div>
-          <div className="border-t border-gray-800">
             <ScoringDashboard />
           </div>
-          <MassBudgetChart />
-          <StabilityIndicator />
+          <div className="border-t border-gray-800">
+            <MassBudgetChart />
+          </div>
+          <div className="border-t border-gray-800">
+            <StabilityIndicator />
+          </div>
+          <div className="border-t border-gray-800">
+            <CAEDashboard />
+          </div>
         </div>
       </div>
     </div>

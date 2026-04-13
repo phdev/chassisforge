@@ -9,7 +9,7 @@ const CG_COLOR = '#ef4444';
 
 function CGMarker() {
   const cg = useDesignStore((s) => s.scores.cgPosition);
-  const margin = useDesignStore((s) => s.scores.stabilityMargin_pct);
+  const margin = useDesignStore((s) => s.scores.tippingMargin_pct);
 
   const dotColor = margin > 50 ? '#22c55e' : margin > 15 ? '#eab308' : '#ef4444';
   const pos: [number, number, number] = [cg.x * MM, cg.z * MM, -cg.y * MM];
