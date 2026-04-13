@@ -50,6 +50,30 @@ export const MATERIAL_THERMAL_CONDUCTIVITY: Record<FrameMaterial, number> = {
   aluminum: 167,
 };
 
+/** Material elastic modulus in MPa. */
+export const MATERIAL_ELASTIC_MODULUS_MPA: Record<FrameMaterial, number> = {
+  pla: 2400,
+  petg: 2100,
+  abs: 2000,
+  plywood: 8500,
+  acrylic: 3100,
+  aluminum: 69_000,
+};
+
+/**
+ * Glass transition / max service temperature in °C.
+ * Above this temperature, material significantly softens under load.
+ * For non-thermoplastics, this is the continuous service temp limit.
+ */
+export const MATERIAL_MAX_SERVICE_TEMP_C: Record<FrameMaterial, number> = {
+  pla: 55,      // Tg ~55-60°C, printed parts warp above this
+  petg: 78,     // Tg ~80°C
+  abs: 98,      // Tg ~100°C
+  plywood: 120, // chars above ~200°C, glue softens ~120°C
+  acrylic: 80,  // Tg ~105°C but crazes under stress at ~80°C
+  aluminum: 200, // no softening concern at these temps
+};
+
 /** Positioned BOM component key. Only components with physical dimensions. */
 export type ComponentKey =
   | 'pi5'
@@ -122,12 +146,22 @@ export interface SimulationScores {
   interferenceWarnings: string[];
 
   // CAE results (reactive to params)
-  actuatorSideLoadMargin_pct: number;
-  bucklingMargin_pct: number;
+  actuatorSideLoadFoS: number;
+  bucklingFoS: number;
+  rodDeflection_mm: number;
+  projectionShift_mm: number;
   slotCornerStress_mpa: number;
+  slotFoS: number;
+  bearingStress_mpa: number;
+  bearingFoS: number;
+  wallDeflection_mm: number;
+  wallFoS: number;
   headSteadyStateTemp_c: number;
   baseSteadyStateTemp_c: number;
+  thermalFoS: number;
+  materialMaxServiceTemp_c: number;
   naturalFrequency_hz: number;
+  tippingFoS: number;
   cableLifeCycles: number;
 }
 
